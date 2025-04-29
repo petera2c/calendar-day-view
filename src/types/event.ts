@@ -9,7 +9,7 @@ export interface Event {
   isMultiDay?: boolean;
   createdAt: string;
   updatedAt: string;
-  type: string; // Event type (work, personal, meeting, etc.)
+  type: EventType; // Event type (work, personal, meeting, etc.)
 }
 
 /**
@@ -21,13 +21,8 @@ export interface EventFormData {
   startTimestamp?: number;
   endTimestamp?: number;
   isMultiDay?: boolean;
-  type?: string; // Event type
+  type?: EventType; // Event type
 }
-
-export type TimeOption = {
-  label: string;
-  value: number;
-};
 
 /**
  * Event type constants

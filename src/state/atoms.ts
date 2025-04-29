@@ -1,21 +1,8 @@
 import { atom } from 'recoil';
-import { EventFormData } from '../types/event';
-import { Event } from '../types/event';
-
-// Position interface for modal positioning
-export interface Position {
-  x: number;
-  y: number;
-  cellRect?: DOMRect;
-  dayIndex?: number;
-}
-
-export interface ModalPosition {
-  x: number;
-  y: number;
-  cellRect?: DOMRect;
-  dayIndex?: number;
-}
+import { EventFormData } from '../types/Event';
+import { Event } from '../types/Event';
+import dayjs from 'dayjs';
+import Position from '../types/Position';
 
 // Default form data
 const defaultFormData: EventFormData = {
@@ -37,13 +24,13 @@ export const modalPositionState = atom<Position | null>({
 });
 
 // Atom for form data
-export const formDataState = atom<EventFormData>({
-  key: 'formDataState',
-  default: defaultFormData,
+export const hourClickedState = atom<number>({
+  key: 'hourClickedState',
+  default: dayjs().hour(),
 });
 
 // Atom for selected event
-export const selectedEventState = atom<string | null>({
+export const selectedEventState = atom<Event | null>({
   key: 'selectedEventState',
   default: null,
 });
@@ -57,7 +44,7 @@ export const selectedEventObjectState = atom<Event | null>({
 // Atom for the selected date
 export const selectedDateState = atom<Date>({
   key: 'selectedDateState',
-  default: new Date(),
+  default: dayjs().toDate(),
 });
 
 // Atom to track if the form is in edit mode

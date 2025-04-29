@@ -1,4 +1,4 @@
-import { EventFormData } from '../types/event';
+import { EventFormData } from '../types/Event';
 
 /**
  * Validate event form data

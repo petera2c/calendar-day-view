@@ -1,4 +1,13 @@
-const FIRST_COLUMN_WIDTH = 80;
+import dayjs from 'dayjs';
+import { COMPACT_HOUR_HEIGHT } from '../constants/styleConstants';
+
+import { STANDARD_HOUR_HEIGHT } from '../constants/styleConstants';
+import { HOURS_IN_DAY } from '../constants/timeConstants';
+import { Event } from '../types/Event';
+import WeekDay from '../types/WeekDay';
+import ProcessedMultiDayEvent from '../types/ProcessedMultiDayEvent';
+import { isEventOnDate } from './event';
+import { getHourFromTimestamp } from './event';
 
 /**
  * Creates a CSS grid-template-columns value with appropriate sizing
@@ -72,18 +81,136 @@ export const getScrollbarWidth = (): number => {
   return scrollbarWidth;
 };
 
-/**
- * Creates a CSS adjustments string to compensate for scrollbar
- * Returns either a padding-right or width reduction based on preference
- */
-export const getScrollbarCompensation = (preferPadding = true): string => {
-  // For SSR safety
-  if (typeof window === 'undefined') {
-    return preferPadding ? 'padding-right: 17px;' : 'width: calc(100% - 17px);';
+export const createHourHeights = (weekDays: WeekDay[], visibleEvents: Event[]): number[] => {
+  const hoursWithEvents = new Set<number>();
+
+  // Check each day for events
+  weekDays.forEach(day => {
+    // Find events for this day that are not multi-day
+    const dayEvents = visibleEvents.filter(
+      event => !event.isMultiDay && isEventOnDate(event, day.date)
+    );
+
+    // Mark each hour that has an event starting or ending
+    dayEvents.forEach(event => {
+      const startHour = getHourFromTimestamp(event.startTimestamp);
+      const endHour = getHourFromTimestamp(event.endTimestamp);
+
+      // Mark all hours this event spans
+      for (let h = Math.floor(startHour); h < Math.ceil(endHour); h++) {
+        if (h >= 0 && h < 24) {
+          hoursWithEvents.add(h);
+        }
+      }
+
+      // Also mark the hour before and after for better visual flow
+      if (startHour > 0) hoursWithEvents.add(Math.floor(startHour) - 1);
+      if (endHour < 23) hoursWithEvents.add(Math.ceil(endHour));
+    });
+  });
+
+  // Create array of hour heights
+  return Array.from({ length: HOURS_IN_DAY }, (_, hour) =>
+    hoursWithEvents.has(hour) ? STANDARD_HOUR_HEIGHT : COMPACT_HOUR_HEIGHT
+  );
+};
+
+export const processMultiDayEvents = (
+  visibleEvents: Event[],
+  weekDays: WeekDay[]
+): { events: ProcessedMultiDayEvent[]; rowCount: number } => {
+  const multiDayEvents = visibleEvents.filter(event => event.isMultiDay);
+
+  if (multiDayEvents.length === 0) {
+    return {
+      events: [] as ProcessedMultiDayEvent[],
+      rowCount: 0,
+    };
   }
 
-  const scrollbarWidth = getScrollbarWidth();
-  return preferPadding
-    ? `padding-right: ${scrollbarWidth}px;`
-    : `width: calc(100% - ${scrollbarWidth}px);`;
+  const weekStart = dayjs(weekDays[0].date).startOf('day');
+  const weekEnd = dayjs(weekDays[6].date).endOf('day');
+
+  // First, calculate the span of each event in terms of grid columns
+  const eventsWithSpan = multiDayEvents.map(event => {
+    const startDay = dayjs(event.startTimestamp).startOf('day');
+    const endDay = dayjs(event.endTimestamp).endOf('day');
+
+    // Find the column index for start day (0-based initially)
+    let startCol = 0;
+    while (startCol < 7 && !dayjs(weekDays[startCol].date).isSame(startDay, 'day')) {
+      startCol++;
+    }
+    if (startCol === 7) startCol = 0;
+
+    // Find the column index for end day (0-based initially)
+    let endCol = 6;
+    if (endDay.isBefore(weekEnd)) {
+      while (endCol >= 0 && !dayjs(weekDays[endCol].date).isSame(endDay, 'day')) {
+        endCol--;
+      }
+      if (endCol < 0) endCol = 6;
+    }
+
+    // Adjust for events that extend beyond visible week
+    if (startDay.isBefore(weekStart)) startCol = 0;
+    if (endDay.isAfter(weekEnd)) endCol = 6;
+
+    return {
+      ...event,
+      // For CSS grid columns (1-based)
+      gridColumnStart: startCol + 1,
+      gridColumnEnd: endCol + 2, // +2 because grid end is exclusive
+    };
+  });
+
+  // Sort events by duration (longer events first) to optimize row assignment
+  eventsWithSpan.sort(
+    (a, b) => b.gridColumnEnd - b.gridColumnStart - (a.gridColumnEnd - a.gridColumnStart)
+  );
+
+  // Assign rows to avoid overlaps
+  const rowAssignments: Record<number, boolean[]> = {};
+  const result = eventsWithSpan.map(event => {
+    let rowIndex = 0;
+    let foundRow = false;
+
+    // Find the first row where this event can fit
+    while (!foundRow) {
+      if (!rowAssignments[rowIndex]) {
+        rowAssignments[rowIndex] = Array(7).fill(false); // 7 columns (7 days of the week)
+      }
+
+      let canFit = true;
+      // Check if any column in this row that the event spans is already occupied
+      for (let col = event.gridColumnStart - 1; col < event.gridColumnEnd - 1; col++) {
+        if (rowAssignments[rowIndex][col]) {
+          canFit = false;
+          break;
+        }
+      }
+
+      if (canFit) {
+        foundRow = true;
+        // Mark the columns as occupied in this row
+        for (let col = event.gridColumnStart - 1; col < event.gridColumnEnd - 1; col++) {
+          rowAssignments[rowIndex][col] = true;
+        }
+      } else {
+        rowIndex++;
+      }
+    }
+
+    return {
+      ...event,
+      // For CSS grid rows (1-based)
+      gridRowStart: rowIndex + 1,
+      gridRowEnd: rowIndex + 2, // +1 because grid end is exclusive
+    } as ProcessedMultiDayEvent;
+  });
+
+  return {
+    events: result,
+    rowCount: Object.keys(rowAssignments).length,
+  };
 };

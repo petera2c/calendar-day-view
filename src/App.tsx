@@ -1,31 +1,25 @@
-import React, { useState, useMemo } from 'react';
-import { ConfigProvider } from 'antd';
+import React, { useMemo } from 'react';
+import { ConfigProvider, message } from 'antd';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
-import { RecoilRoot } from 'recoil';
+import { RecoilRoot, useRecoilValue } from 'recoil';
 import CalendarGrid from './components/CalendarGrid/CalendarGrid';
 import EventForm from './components/EventForm';
 import MiniCalendar from './components/MiniCalendar';
 import NewEventButton from './components/NewEventButton';
-import { Event } from './types/event';
 import { fetchEventsByDateRange } from './api/eventService';
-import dayjs from 'dayjs';
-import QueryKeys from './utils/QueryKeyFactory';
 import { getWeekDays } from './utils/date';
+import { selectedDateState } from './state/atoms';
+import QueryKeys from './utils/QueryKeyFactory';
+import { QUERY_CLIENT_OPTIONS } from './constants/queryConstants';
 
-// Create a client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-  },
-});
+// Create a client with default options from constants
+const queryClient = new QueryClient(QUERY_CLIENT_OPTIONS);
 
 const AppContent: React.FC = () => {
   // State for selected date
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const selectedDate = useRecoilValue(selectedDateState);
+
+  const [messageApi, contextHolder] = message.useMessage();
 
   // Calculate the visible week range based on selected date
   const weekRange = useMemo(() => {
@@ -36,12 +30,9 @@ const AppContent: React.FC = () => {
     };
   }, [selectedDate]);
 
-  // Create a stable query key that only changes when the date range changes
+  // Get query key from the QueryKeyFactory
   const queryKey = useMemo(() => {
-    const { startDate, endDate } = weekRange;
-    const startStr = dayjs(startDate).format('YYYY-MM-DD');
-    const endStr = dayjs(endDate).format('YYYY-MM-DD');
-    return ['events', 'dateRange', startStr, endStr];
+    return QueryKeys.events.byDateRange(weekRange.startDate, weekRange.endDate);
   }, [weekRange]);
 
   // Fetch events for the visible week range
@@ -52,13 +43,7 @@ const AppContent: React.FC = () => {
   } = useQuery({
     queryKey,
     queryFn: () => fetchEventsByDateRange(weekRange.startDate, weekRange.endDate),
-    staleTime: 5 * 60 * 1000, // 5 minutes
   });
-
-  // Create a custom event handler to update the selected date
-  const handleDateChange = (date: Date) => {
-    setSelectedDate(date);
-  };
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
@@ -67,23 +52,17 @@ const AppContent: React.FC = () => {
           {/* Sidebar with mini calendar */}
           <div className="flex flex-col gap-4 flex-shrink-0">
             <NewEventButton />
-            <MiniCalendar selectedDate={selectedDate} onDateChange={handleDateChange} />
+            <MiniCalendar selectedDate={selectedDate} />
           </div>
 
           {/* Main calendar view - allow to shrink with flex-1 min-h-0 */}
           <div className="flex-1 min-h-0 flex">
-            <CalendarGrid
-              events={events}
-              isLoading={isLoading}
-              hasError={!!queryError}
-              selectedDate={selectedDate}
-              onDateChange={handleDateChange}
-            />
+            <CalendarGrid events={events} isLoading={isLoading} hasError={!!queryError} />
           </div>
         </div>
 
         {/* Event form modal */}
-        <EventForm events={events} />
+        <EventForm />
       </main>
     </div>
   );

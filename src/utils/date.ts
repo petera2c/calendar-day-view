@@ -1,12 +1,6 @@
 import dayjs from 'dayjs';
-import { TimeOption } from '../types/event';
-import {
-  DATE_FORMAT,
-  MONTH_YEAR_FORMAT,
-  DATE_DISPLAY_FORMAT,
-  HOURS_IN_DAY,
-  DAYS_IN_WEEK,
-} from '../constants';
+import { DATE_FORMAT } from '../constants/formatConstants';
+import { HOURS_IN_DAY } from '../constants/timeConstants';
 
 /**
  * Format a date to the application's default date format

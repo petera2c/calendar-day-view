@@ -1,4 +1,4 @@
-import { EventType } from '../types/event';
+import { EventType } from '../types/Event';
 
 /**
  * Event type display definitions

@@ -1,30 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from 'antd';
 import dayjs from 'dayjs';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
-import { MONTH_YEAR_FORMAT } from '../constants';
+import { MONTH_YEAR_FORMAT } from '../constants/formatConstants';
 import { useRecoilState } from 'recoil';
 import { selectedDateState } from '../state/atoms';
 
 interface MiniCalendarProps {
   selectedDate: Date;
-  onDateChange: (date: Date) => void;
 }
 
-const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDate, onDateChange }) => {
-  const [recoilSelectedDate, setRecoilSelectedDate] = useRecoilState(selectedDateState);
+const MiniCalendar: React.FC<MiniCalendarProps> = () => {
+  const [selectedDate, setSelectedDate] = useRecoilState(selectedDateState);
 
   const [currentMonth, setCurrentMonth] = useState<Date>(
     dayjs(selectedDate).startOf('month').toDate()
   );
-
-  // Update current month when selectedDate changes
-  useEffect(() => {
-    if (!dayjs(currentMonth).isSame(selectedDate, 'month')) {
-      setCurrentMonth(dayjs(selectedDate).startOf('month').toDate());
-    }
-  }, [selectedDate, currentMonth]);
 
   const handlePrevMonth = () => {
     setCurrentMonth(dayjs(currentMonth).subtract(1, 'month').toDate());
@@ -35,8 +27,7 @@ const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDate, onDateChange 
   };
 
   const handleDateClick = (date: Date) => {
-    onDateChange(date);
-    setRecoilSelectedDate(date);
+    setSelectedDate(date);
   };
 
   // Generate calendar data

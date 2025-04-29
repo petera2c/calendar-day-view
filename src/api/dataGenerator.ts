@@ -1,4 +1,4 @@
-import { Event, EventType } from '../types/event';
+import { Event, EventType } from '../types/Event';
 import { v4 as uuidv4 } from 'uuid';
 import dayjs from 'dayjs';
 import { EVENT_TYPES_DATA } from './eventTypes';

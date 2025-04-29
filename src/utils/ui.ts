@@ -1,4 +1,4 @@
-import { ModalPosition } from '../state/atoms';
+import ModalPosition from '../types/ModalPosition';
 
 interface ElementSize {
   width: number;

@@ -3,35 +3,27 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Button } from 'antd';
 import { useSetRecoilState } from 'recoil';
 import {
-  formDataState,
+  hourClickedState,
   isEditModeState,
   isModalOpenState,
   modalPositionState,
   selectedEventState,
 } from '../state/atoms';
-import { createDefaultEventData } from '../utils/event';
+import dayjs from 'dayjs';
 
 const NewEventButton = () => {
   // Recoil state
   const setModalPosition = useSetRecoilState(modalPositionState);
-  const setFormData = useSetRecoilState(formDataState);
   const setIsModalOpen = useSetRecoilState(isModalOpenState);
-  const setSelectedEventId = useSetRecoilState(selectedEventState);
+  const setSelectedEvent = useSetRecoilState(selectedEventState);
   const setIsEditMode = useSetRecoilState(isEditModeState);
+  const setHourClicked = useSetRecoilState(hourClickedState);
 
   const handleNewEvent = () => {
-    // Create event at current time, rounded to the nearest hour
-    const now = new Date();
-    const currentHour = now.getHours();
-
-    // Create default event data
-    const newEventData = createDefaultEventData(now, currentHour);
-
     // Set form data in Recoil state
-    setFormData(newEventData);
     setIsEditMode(false);
-    setSelectedEventId(null);
-
+    setSelectedEvent(null);
+    setHourClicked(dayjs().hour());
     // Position in the center of the screen (no cell reference)
     setModalPosition({
       x: 0,
