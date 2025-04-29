@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useState, useRef } from 'react';
-import { Spin, Alert, message } from 'antd';
+import { Spin, message } from 'antd';
 import { getWeekDays } from '../../utils/date';
 import { isEventOnDate } from '../../utils/event';
 import { useRecoilState, useSetRecoilState } from 'recoil';
@@ -62,7 +62,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ events, isLoading, hasError
     if (hasError) {
       messageApi.error('Error loading events');
     }
-  }, [hasError]);
+  }, [hasError, messageApi]);
 
   // Get week days for the selected date
   const weekDays = getWeekDays(selectedDate);

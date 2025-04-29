@@ -1,5 +1,4 @@
 import { atom } from 'recoil';
-import { EventFormData } from '../types/Event';
 import { Event } from '../types/Event';
 import dayjs from 'dayjs';
 import Position from '../types/Position';

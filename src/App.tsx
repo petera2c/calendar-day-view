@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ConfigProvider, message } from 'antd';
+import { ConfigProvider } from 'antd';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { RecoilRoot, useRecoilValue } from 'recoil';
 import CalendarGrid from './components/CalendarGrid/CalendarGrid';
@@ -18,8 +18,6 @@ const queryClient = new QueryClient(QUERY_CLIENT_OPTIONS);
 const AppContent: React.FC = () => {
   // State for selected date
   const selectedDate = useRecoilValue(selectedDateState);
-
-  const [messageApi, contextHolder] = message.useMessage();
 
   // Calculate the visible week range based on selected date
   const weekRange = useMemo(() => {
