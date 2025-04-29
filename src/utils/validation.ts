@@ -12,28 +12,19 @@ export const validateEventForm = (formData: EventFormData): string[] => {
     errors.push('Event name is required');
   }
 
-  if (formData.startTimestamp === null || formData.startTimestamp === undefined) {
+  if (!formData.startTimestamp) {
     errors.push('Start time is required');
   }
 
-  if (formData.endTimestamp === null || formData.endTimestamp === undefined) {
+  if (!formData.endTimestamp) {
     errors.push('End time is required');
   }
 
-  const startHour = dayjs(formData.startTimestamp).hour();
-  const endHour = dayjs(formData.endTimestamp).hour();
+  let startTimestamp = dayjs(formData.startTimestamp);
+  let endTimestamp = dayjs(formData.endTimestamp);
 
-  console.log(startHour, endHour);
-
-  if (
-    formData.startTimestamp !== null &&
-    formData.endTimestamp !== null &&
-    formData.startTimestamp !== undefined &&
-    formData.endTimestamp !== undefined &&
-    startHour >= endHour
-  ) {
+  if (startTimestamp.isAfter(endTimestamp)) {
     errors.push('End time must be after start time');
   }
-
   return errors;
 };

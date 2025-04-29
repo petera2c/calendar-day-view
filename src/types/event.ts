@@ -16,6 +16,7 @@ export interface Event {
  * Form data for creating or editing events
  */
 export interface EventFormData {
+  date?: string;
   id?: string;
   name: string;
   startTimestamp?: number;

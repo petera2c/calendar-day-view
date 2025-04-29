@@ -4,13 +4,6 @@ import { Event } from '../types/Event';
 import dayjs from 'dayjs';
 import Position from '../types/Position';
 
-// Default form data
-const defaultFormData: EventFormData = {
-  name: '',
-  startTimestamp: undefined,
-  endTimestamp: undefined,
-};
-
 // Atom for modal visibility
 export const isModalOpenState = atom<boolean>({
   key: 'isModalOpenState',

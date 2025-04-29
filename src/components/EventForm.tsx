@@ -33,6 +33,7 @@ const { Title } = Typography;
 const FORM_WIDTH = 350; // Increased width of the form
 const FORM_MARGIN = 15; // Margin from the cell
 const ANIMATION_DURATION = 300; // Animation duration in ms
+const DEFAULT_EVENT_TYPE = 'work';
 
 const EventForm: React.FC = () => {
   // Recoil state
@@ -59,9 +60,11 @@ const EventForm: React.FC = () => {
 
   useEffect(() => {
     form.setFieldsValue({
-      type: 'work',
+      isMultiDay: false,
+      type: DEFAULT_EVENT_TYPE,
       name: '',
       startTimestamp: dayjs(timestampClicked),
+      endTimestamp: dayjs(timestampClicked).add(1, 'hour'),
       date: dayjs(timestampClicked),
     });
   }, [timestampClicked, form]);
@@ -118,7 +121,9 @@ const EventForm: React.FC = () => {
 
   const resetForm = () => {
     form.setFieldsValue({
+      isMultiDay: false,
       name: '',
+      type: DEFAULT_EVENT_TYPE,
       startTimestamp: undefined,
       endTimestamp: undefined,
     });
@@ -133,10 +138,6 @@ const EventForm: React.FC = () => {
     try {
       // Validate form
       const errors = validateEventForm(form.getFieldsValue());
-      if (errors.length > 0) {
-        errors.forEach(err => message.error(err));
-        return;
-      }
 
       // Combine date and time for non-multi-day events
       const values = form.getFieldsValue();
@@ -155,13 +156,18 @@ const EventForm: React.FC = () => {
           .millisecond(0);
       }
 
+      if (errors.length > 0) {
+        errors.forEach(err => message.error(err));
+        return;
+      }
+
       setIsSubmitting(true);
 
       // Prepare complete event data
       const eventData = {
         ...values,
         id: selectedEvent?.id, // Ensure ID is included for updates
-        type: values.type || 'work', // Default to work if type not specified
+        type: values.type || DEFAULT_EVENT_TYPE, // Default to work if type not specified
       };
 
       // Either update or create event
