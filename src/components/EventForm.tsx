@@ -16,12 +16,12 @@ import {
 import { DeleteOutlined, CloseOutlined, CalendarOutlined } from '@ant-design/icons';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import {
-  hourClickedState,
   isEditModeState,
   isModalOpenState,
   isTransitioningState,
   modalPositionState,
   selectedEventState,
+  timestampClickedState,
 } from '../state/atoms';
 import { validateEventForm } from '../utils/validation';
 import { getOptimalModalPlacement } from '../utils/ui';
@@ -41,7 +41,7 @@ const EventForm: React.FC = () => {
   const [selectedEvent, setSelectedEvent] = useRecoilState(selectedEventState);
   const setIsEditMode = useSetRecoilState(isEditModeState);
   const [isTransitioning, setIsTransitioning] = useRecoilState(isTransitioningState);
-  const [hourClicked, setHourClicked] = useRecoilState(hourClickedState);
+  const [timestampClicked, setTimestampClicked] = useRecoilState(timestampClickedState);
 
   // Query client for refetching data after mutations
   const queryClient = useQueryClient();
@@ -55,11 +55,16 @@ const EventForm: React.FC = () => {
   // Change the input ref type
   const inputRef = useRef<InputRef>(null);
 
+  const isMultiDay = Form.useWatch(['isMultiDay'], form);
+
   useEffect(() => {
     form.setFieldsValue({
-      startTimestamp: dayjs().hour(hourClicked).minute(0).second(0).millisecond(0),
+      type: 'work',
+      name: '',
+      startTimestamp: dayjs(timestampClicked),
+      date: dayjs(timestampClicked),
     });
-  }, [hourClicked, form]);
+  }, [timestampClicked, form]);
 
   // Calculate form position whenever modalPosition changes
   useEffect(() => {
@@ -71,6 +76,8 @@ const EventForm: React.FC = () => {
         FORM_MARGIN
       );
 
+      if (placement.top === formPosition.top && placement.left === formPosition.left) return;
+
       // Apply transition effect when repositioning
       if (isModalOpen && !isTransitioning) {
         setIsTransitioning(true);
@@ -79,19 +86,24 @@ const EventForm: React.FC = () => {
 
       setFormPosition(placement);
     }
-  }, [modalPosition, isModalOpen, setIsTransitioning, isTransitioning]);
+  }, [formPosition, modalPosition, isModalOpen, setIsTransitioning, isTransitioning]);
 
   // Update the form when the selected event changes
   useEffect(() => {
-    form.setFieldsValue({
-      name: selectedEvent?.name,
-      isMultiDay: !!selectedEvent?.isMultiDay,
-      startTimestamp: selectedEvent?.startTimestamp
-        ? dayjs(selectedEvent.startTimestamp)
-        : undefined,
-      endTimestamp: selectedEvent?.endTimestamp ? dayjs(selectedEvent.endTimestamp) : undefined,
-      type: selectedEvent?.type || undefined,
-    });
+    if (selectedEvent) {
+      const date = selectedEvent.startTimestamp ? dayjs(selectedEvent.startTimestamp) : undefined;
+
+      form.setFieldsValue({
+        date,
+        name: selectedEvent.name,
+        isMultiDay: !!selectedEvent.isMultiDay,
+        startTimestamp: selectedEvent.startTimestamp
+          ? dayjs(selectedEvent.startTimestamp)
+          : undefined,
+        endTimestamp: selectedEvent.endTimestamp ? dayjs(selectedEvent.endTimestamp) : undefined,
+        type: selectedEvent.type || undefined,
+      });
+    }
   }, [selectedEvent, form]);
 
   // Add a useEffect to focus the input when the modal opens or when the form data changes
@@ -114,7 +126,7 @@ const EventForm: React.FC = () => {
     setIsEditMode(false);
     setIsModalOpen(false);
     setModalPosition(null);
-    setHourClicked(dayjs().hour());
+    setTimestampClicked(dayjs().valueOf());
   };
 
   const handleSubmit = async () => {
@@ -126,21 +138,30 @@ const EventForm: React.FC = () => {
         return;
       }
 
-      // Make sure the endTimestamp is after the startTimestamp
-      if (form.getFieldsValue().startTimestamp && form.getFieldsValue().endTimestamp) {
-        if (form.getFieldsValue().startTimestamp > form.getFieldsValue().endTimestamp) {
-          message.error('Event cannot end before it starts');
-          return;
-        }
+      // Combine date and time for non-multi-day events
+      const values = form.getFieldsValue();
+
+      if (!values.isMultiDay) {
+        values.startTimestamp = dayjs(values.date)
+          .hour(values.startTimestamp.hour())
+          .minute(0)
+          .second(0)
+          .millisecond(0);
+
+        values.endTimestamp = dayjs(values.date)
+          .hour(values.endTimestamp.hour())
+          .minute(0)
+          .second(0)
+          .millisecond(0);
       }
 
       setIsSubmitting(true);
 
       // Prepare complete event data
       const eventData = {
-        ...form.getFieldsValue(),
+        ...values,
         id: selectedEvent?.id, // Ensure ID is included for updates
-        type: form.getFieldsValue().type || 'work', // Default to work if type not specified
+        type: values.type || 'work', // Default to work if type not specified
       };
 
       // Either update or create event
@@ -262,7 +283,7 @@ const EventForm: React.FC = () => {
             <Checkbox>Multi-day event</Checkbox>
           </Form.Item>
 
-          {form.getFieldsValue().isMultiDay ? (
+          {isMultiDay ? (
             <>
               {/* Multi-day event form */}
               <Form.Item
@@ -273,7 +294,6 @@ const EventForm: React.FC = () => {
                 <DatePicker
                   showTime
                   format="YYYY-MM-DD HH:mm"
-                  style={{ width: '100%' }}
                   placeholder="Start date"
                   suffixIcon={<CalendarOutlined />}
                   getPopupContainer={trigger => trigger.parentElement || document.body}
@@ -292,7 +312,6 @@ const EventForm: React.FC = () => {
                 <DatePicker
                   showTime
                   format="YYYY-MM-DD HH:mm"
-                  style={{ width: '100%' }}
                   placeholder="End date"
                   suffixIcon={<CalendarOutlined />}
                   getPopupContainer={trigger => trigger.parentElement || document.body}
@@ -307,6 +326,21 @@ const EventForm: React.FC = () => {
           ) : (
             <>
               {/* Single-day event form */}
+              <Form.Item name="date" label="Date" style={{ marginBottom: 16 }} required>
+                <DatePicker
+                  className="w-full"
+                  format="YYYY-MM-DD"
+                  placeholder="Select date"
+                  suffixIcon={<CalendarOutlined />}
+                  getPopupContainer={trigger => trigger.parentElement || document.body}
+                  onChange={date => {
+                    form.setFieldsValue({
+                      date,
+                    });
+                  }}
+                />
+              </Form.Item>
+
               <div className="grid grid-cols-2 gap-3">
                 <Form.Item
                   name="startTimestamp"
@@ -322,11 +356,6 @@ const EventForm: React.FC = () => {
                     showNow={false}
                     showMinute={false}
                     showSecond={false}
-                    onChange={time => {
-                      form.setFieldsValue({
-                        startTimestamp: time,
-                      });
-                    }}
                   />
                 </Form.Item>
 
@@ -344,11 +373,6 @@ const EventForm: React.FC = () => {
                     showNow={false}
                     showMinute={false}
                     showSecond={false}
-                    onChange={time => {
-                      form.setFieldsValue({
-                        endTimestamp: time,
-                      });
-                    }}
                   />
                 </Form.Item>
               </div>

@@ -3,11 +3,11 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Button } from 'antd';
 import { useSetRecoilState } from 'recoil';
 import {
-  hourClickedState,
   isEditModeState,
   isModalOpenState,
   modalPositionState,
   selectedEventState,
+  timestampClickedState,
 } from '../state/atoms';
 import dayjs from 'dayjs';
 
@@ -17,13 +17,13 @@ const NewEventButton = () => {
   const setIsModalOpen = useSetRecoilState(isModalOpenState);
   const setSelectedEvent = useSetRecoilState(selectedEventState);
   const setIsEditMode = useSetRecoilState(isEditModeState);
-  const setHourClicked = useSetRecoilState(hourClickedState);
+  const setTimestampClicked = useSetRecoilState(timestampClickedState);
 
   const handleNewEvent = () => {
     // Set form data in Recoil state
     setIsEditMode(false);
     setSelectedEvent(null);
-    setHourClicked(dayjs().hour());
+    setTimestampClicked(dayjs().valueOf());
     // Position in the center of the screen (no cell reference)
     setModalPosition({
       x: 0,

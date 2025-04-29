@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import { EventFormData } from '../types/Event';
 
 /**
@@ -19,12 +20,17 @@ export const validateEventForm = (formData: EventFormData): string[] => {
     errors.push('End time is required');
   }
 
+  const startHour = dayjs(formData.startTimestamp).hour();
+  const endHour = dayjs(formData.endTimestamp).hour();
+
+  console.log(startHour, endHour);
+
   if (
     formData.startTimestamp !== null &&
     formData.endTimestamp !== null &&
     formData.startTimestamp !== undefined &&
     formData.endTimestamp !== undefined &&
-    formData.startTimestamp >= formData.endTimestamp
+    startHour >= endHour
   ) {
     errors.push('End time must be after start time');
   }

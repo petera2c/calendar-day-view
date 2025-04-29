@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { RefObject, useMemo } from 'react';
 import dayjs from 'dayjs';
 import { Event } from '../../types/Event';
 import { HOURS_IN_DAY } from '../../constants/timeConstants';
@@ -6,7 +6,7 @@ import { getEventTypeColors } from '../../utils/eventColors';
 import { getHourFromTimestamp, isEventOnDate } from '../../utils/event';
 import { Tooltip } from 'antd';
 import { createGridTemplateColumns } from '../../utils/grid';
-import { hourClickedState, isEditModeState } from '../../state/atoms';
+import { timestampClickedState, isEditModeState } from '../../state/atoms';
 import { selectedEventState } from '../../state/atoms';
 import { isModalOpenState } from '../../state/atoms';
 import { modalPositionState, selectedEventObjectState } from '../../state/atoms';
@@ -22,24 +22,26 @@ interface WeekDay {
 }
 
 interface HourCellsProps {
-  weekDays: WeekDay[];
-  visibleEvents: Event[];
+  bodyScrollRef: RefObject<HTMLDivElement>;
   hourHeights: number[];
   onEventClick: (event: Event, e: React.MouseEvent) => void;
+  visibleEvents: Event[];
+  weekDays: WeekDay[];
 }
 
 const HourCells: React.FC<HourCellsProps> = ({
-  weekDays,
-  visibleEvents,
+  bodyScrollRef,
   hourHeights,
   onEventClick,
+  visibleEvents,
+  weekDays,
 }) => {
   const [, setSelectedEventObject] = useRecoilState(selectedEventObjectState);
   const setModalPosition = useSetRecoilState(modalPositionState);
   const setIsModalOpen = useSetRecoilState(isModalOpenState);
   const setSelectedEvent = useSetRecoilState(selectedEventState);
   const setIsEditMode = useSetRecoilState(isEditModeState);
-  const setHourClicked = useSetRecoilState(hourClickedState);
+  const setTimestampClicked = useSetRecoilState(timestampClickedState);
 
   // Calculate row positions based on varying heights
   const hourPositions = useMemo(() => {
@@ -225,7 +227,7 @@ const HourCells: React.FC<HourCellsProps> = ({
     setIsEditMode(false);
     setSelectedEvent(null);
     setSelectedEventObject(null);
-    setHourClicked(hour);
+    setTimestampClicked(hour);
     // Set position and open modal
     setModalPosition({
       x: 0,
@@ -237,7 +239,7 @@ const HourCells: React.FC<HourCellsProps> = ({
   };
 
   return (
-    <div className="flex-1 overflow-auto min-h-0">
+    <div className="flex-1 overflow-auto min-h-0" ref={bodyScrollRef}>
       <div
         className="w-full relative"
         style={{
@@ -295,7 +297,7 @@ const HourCells: React.FC<HourCellsProps> = ({
                   height: `${hourHeights[hour]}rem`,
                   left: 0,
                 }}
-                onClick={e => handleCellClick(day.date, hour, e)}
+                onClick={e => handleCellClick(day.date, dayjs(day.date).hour(hour).valueOf(), e)}
               />
             ))}
 

@@ -24,9 +24,9 @@ export const modalPositionState = atom<Position | null>({
 });
 
 // Atom for form data
-export const hourClickedState = atom<number>({
-  key: 'hourClickedState',
-  default: dayjs().hour(),
+export const timestampClickedState = atom<number>({
+  key: 'timestampClickedState',
+  default: dayjs().valueOf(),
 });
 
 // Atom for selected event

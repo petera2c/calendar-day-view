@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useState, useRef } from 'react';
 import { Spin, Alert, message } from 'antd';
 import { getWeekDays } from '../../utils/date';
 import { isEventOnDate } from '../../utils/event';
@@ -40,13 +40,23 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ events, isLoading, hasError
 
   const [messageApi, contextHolder] = message.useMessage();
 
+  const bodyScrollRef = useRef<HTMLDivElement>(null);
+
   // State for scrollbar width
   const [scrollbarWidth, setScrollbarWidth] = useState(0);
 
-  // Calculate scrollbar width on mount
+  // Calculate scrollbar width on events change
   useEffect(() => {
-    setScrollbarWidth(getScrollbarWidth());
-  }, []);
+    const updateScrollbarWidth = () => {
+      if (!bodyScrollRef.current) return;
+      const isScrollbarVisible =
+        bodyScrollRef.current?.scrollHeight > bodyScrollRef.current?.clientHeight;
+      setScrollbarWidth(isScrollbarVisible ? getScrollbarWidth() : 0);
+    };
+    updateScrollbarWidth();
+    window.addEventListener('resize', updateScrollbarWidth);
+    return () => window.removeEventListener('resize', updateScrollbarWidth);
+  }, [events]);
 
   useEffect(() => {
     if (hasError) {
@@ -155,10 +165,11 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ events, isLoading, hasError
 
           {/* Body Grid (Hours and Events) - Scrollable, with dynamic row heights */}
           <HourCells
-            weekDays={weekDays}
-            visibleEvents={visibleEvents}
+            bodyScrollRef={bodyScrollRef}
             hourHeights={hourHeights}
             onEventClick={handleEventClick}
+            visibleEvents={visibleEvents}
+            weekDays={weekDays}
           />
         </div>
       )}
