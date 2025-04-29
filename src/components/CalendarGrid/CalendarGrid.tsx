@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useEffect, useState } from 'react';
-import { Spin, Alert } from 'antd';
+import React, { useMemo, useEffect, useState } from 'react';
+import { Spin, Alert, message } from 'antd';
 import { getWeekDays } from '../../utils/date';
 import { isEventOnDate } from '../../utils/event';
 import { useRecoilState, useSetRecoilState } from 'recoil';
@@ -12,7 +12,6 @@ import {
   isEditModeState,
 } from '../../state/atoms';
 import dayjs from 'dayjs';
-import { HOURS_IN_DAY } from '../../constants/timeConstants';
 import { Event } from '../../types/Event';
 import {
   createGridTemplateColumns,
@@ -39,8 +38,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ events, isLoading, hasError
   const setSelectedEvent = useSetRecoilState(selectedEventState);
   const setIsEditMode = useSetRecoilState(isEditModeState);
 
-  // Refs for grid measurement
-  const headerGridRef = useRef<HTMLDivElement>(null);
+  const [messageApi, contextHolder] = message.useMessage();
 
   // State for scrollbar width
   const [scrollbarWidth, setScrollbarWidth] = useState(0);
@@ -50,16 +48,14 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ events, isLoading, hasError
     setScrollbarWidth(getScrollbarWidth());
   }, []);
 
+  useEffect(() => {
+    if (hasError) {
+      messageApi.error('Error loading events');
+    }
+  }, [hasError]);
+
   // Get week days for the selected date
   const weekDays = getWeekDays(selectedDate);
-
-  // Create an array of hours (0 to 23)
-  const hours = Array.from({ length: HOURS_IN_DAY }, (_, i) => i);
-
-  // Helper function to get hour from timestamp
-  const getHourFromTimestamp = (timestamp: number): number => {
-    return dayjs(timestamp).hour() + dayjs(timestamp).minute() / 60;
-  };
 
   // Navigation handlers
   const handlePrevWeek = () => {
@@ -116,23 +112,12 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ events, isLoading, hasError
     return processMultiDayEvents(visibleEvents, weekDays);
   }, [visibleEvents, weekDays]);
 
-  if (hasError) {
-    return (
-      <Alert
-        message="Error"
-        description="Failed to load events"
-        type="error"
-        showIcon
-        className="mb-4"
-      />
-    );
-  }
-
   return (
     <div className="flex-1 bg-white shadow rounded-md overflow-hidden flex flex-col min-h-0">
+      {contextHolder}
       <CalendarHeader onPrevWeek={handlePrevWeek} onNextWeek={handleNextWeek} />
 
-      {isLoading ? (
+      {isLoading || hasError ? (
         <div className="flex justify-center items-center h-40">
           <Spin size="large" />
         </div>
@@ -140,7 +125,6 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({ events, isLoading, hasError
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           {/* Header Grid (Day headers and All-day section) */}
           <div
-            ref={headerGridRef}
             style={{
               gridTemplateColumns: createGridTemplateColumns({
                 hasFirstColumn: true,
